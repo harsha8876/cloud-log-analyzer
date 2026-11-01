@@ -13,7 +13,7 @@ cloud-log-analyzer/
 ├── README.md
 ├── PROJECT_REPORT.md
 ├── SCREENSHOTS.md
-├── screenshots/                 # Empty until evidence is captured
+├── screenshots/                
 ├── sample.log
 ├── large.log
 ├── generate_logs.py
@@ -279,23 +279,5 @@ The sample IP report contains six addresses, each with one request, alongside th
 
 The sample status report contains `200=5` and `404=1`; the HDFS listing includes the report part file and `_SUCCESS`.
 
-### Verification of all three reports against 10,000 records
 
-No screenshot of the 10,000-record verification is present. The existing sample-report captures above do not document that verification; its recorded results appear in the earlier validation and results sections.
 
-## Limitations
-
-- The data are synthetic and do not establish behavior on production traffic or varied log formats.
-- The environment uses one EC2 instance and HDFS replication factor 1. There is no redundant data replica demonstrated here.
-- `mapreduce.framework.name=local` runs computation locally; YARN was not configured. This is not a multi-node distributed execution benchmark.
-- The mapper checks field count only. The reducer assumes valid integer counts and sorted input. No production ingestion or security features are implemented or evaluated.
-- No execution-time, speedup, cost, recovery, or fault-tolerance measurements were collected in the supplied evidence.
-
-The project demonstrates correctness of aggregation and independent validation. It does not demonstrate distributed performance or fault tolerance.
-
-## References
-
-- Apache Hadoop 3.4.3: [Hadoop Streaming](https://hadoop.apache.org/docs/r3.4.3/hadoop-streaming/HadoopStreaming.html).
-- Apache Hadoop 3.4.3: [Setting up a Single Node Cluster](https://hadoop.apache.org/docs/r3.4.3/hadoop-project-dist/hadoop-common/SingleCluster.html).
-- Apache Hadoop 3.4.3: [File System Shell](https://hadoop.apache.org/docs/r3.4.3/hadoop-project-dist/hadoop-common/FileSystemShell.html).
-- Uploaded course slides: **[Add exact uploaded course slide title(s)]**. The slides and their titles were unavailable in this workspace when this documentation was written; this reference requires completion from the original upload.
