@@ -243,7 +243,7 @@ The sample reports total six records each: pages `/about=2`, `/home=3`, `/missin
 
 ## Screenshots
 
-The existing captures below show the Hadoop/HDFS environment and the six-record sample run. They do not show the 10,000-record report verification. TIFF screenshots retain their original format; some Markdown viewers may require opening those image files directly.
+The existing captures below show the Hadoop/HDFS environment and the six-record sample run. They do not show the 10,000-record report verification. PNG copies of the two TIFF screenshots are embedded for Markdown compatibility; the original TIFF files are preserved.
 
 ### AWS EC2 deployment
 
@@ -251,13 +251,13 @@ No dedicated EC2 deployment screenshot is present. The Hadoop/HDFS capture below
 
 ### Hadoop installation and HDFS services
 
-![Terminal showing Hadoop 3.4.3, NameNode and DataNode processes, and one live HDFS DataNode](screenshots/hadoop-installation-and-hdfs-services.tiff)
+![Terminal showing Hadoop 3.4.3, NameNode and DataNode processes, and one live HDFS DataNode](screenshots/hadoop-installation-and-hdfs-services.png)
 
 Hadoop reports version 3.4.3; `jps` lists NameNode and DataNode, and the HDFS report lists one live DataNode.
 
 ### Input logs in HDFS
 
-![HDFS listing and contents of sample.log showing six synthetic web log records](screenshots/sample-input-logs-in-hdfs.tiff)
+![HDFS listing and contents of sample.log showing six synthetic web log records](screenshots/sample-input-logs-in-hdfs.png)
 
 The HDFS input directory contains `sample.log`, and `hdfs dfs -cat` displays its six records.
 
