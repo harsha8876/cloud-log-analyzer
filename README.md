@@ -241,6 +241,48 @@ The existing reports were read and `python3 verify_reports.py` was run successfu
 
 The sample reports total six records each: pages `/about=2`, `/home=3`, `/missing=1`; six distinct IPs with one request each; statuses `200=5`, `404=1`.
 
+## Screenshots
+
+The existing captures below show the Hadoop/HDFS environment and the six-record sample run. They do not show the 10,000-record report verification. TIFF screenshots retain their original format; some Markdown viewers may require opening those image files directly.
+
+### AWS EC2 deployment
+
+No dedicated EC2 deployment screenshot is present. The Hadoop/HDFS capture below shows an EC2 internal hostname, but does not show the EC2 console or instance configuration.
+
+### Hadoop installation and HDFS services
+
+![Terminal showing Hadoop 3.4.3, NameNode and DataNode processes, and one live HDFS DataNode](screenshots/hadoop-installation-and-hdfs-services.tiff)
+
+Hadoop reports version 3.4.3; `jps` lists NameNode and DataNode, and the HDFS report lists one live DataNode.
+
+### Input logs in HDFS
+
+![HDFS listing and contents of sample.log showing six synthetic web log records](screenshots/sample-input-logs-in-hdfs.tiff)
+
+The HDFS input directory contains `sample.log`, and `hdfs dfs -cat` displays its six records.
+
+### Page counts
+
+![HDFS sample page report showing about with 2 requests, home with 3, missing with 1, and a success marker](screenshots/sample-page-counts-and-job-output.png)
+
+The sample page output contains `/about=2`, `/home=3`, and `/missing=1`; the directory listing includes `_SUCCESS` and `part-00000`.
+
+### Requests per IP
+
+![HDFS sample IP report showing one request for each address from 192.0.2.1 through 192.0.2.6](screenshots/sample-requests-per-ip.png)
+
+The sample IP report contains six addresses, each with one request, alongside the HDFS output-file listing.
+
+### HTTP status counts
+
+![HDFS sample HTTP status report showing five responses with status 200 and one with status 404](screenshots/sample-http-status-counts.png)
+
+The sample status report contains `200=5` and `404=1`; the HDFS listing includes the report part file and `_SUCCESS`.
+
+### Verification of all three reports against 10,000 records
+
+No screenshot of the 10,000-record verification is present. The existing sample-report captures above do not document that verification; its recorded results appear in the earlier validation and results sections.
+
 ## Limitations
 
 - The data are synthetic and do not establish behavior on production traffic or varied log formats.
