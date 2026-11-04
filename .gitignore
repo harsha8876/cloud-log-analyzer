@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+.frontend-runs/
+
+# Keep private key files out of version control.
+*.pem
+*.key

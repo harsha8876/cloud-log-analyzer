@@ -4,14 +4,16 @@
 
 Aggregate web requests by page, client IP, and HTTP status, then check the results against independently computed counts. Individual log records are difficult to summarize by inspection; key/count aggregation produces request-frequency reports and makes failed requests visible.
 
-This project uses synthetic data and a single AWS EC2 instance with Hadoop 3.4.3, Java 11, and HDFS. The execution configuration supplied for this project is `dfs.replication=1` and `mapreduce.framework.name=local`. YARN was not configured. Python 3 scripts use only the standard library. These environment details describe the reported project setup; the saved TSV files alone do not establish the remote configuration or original submission commands.
+The working Streamlit upload-and-analysis application runs on a single AWS EC2 **c7i-flex.large instance with 4 GiB RAM**, using synthetic data, Python, Java 11, Hadoop 3.4.3, Hadoop Streaming, and HDFS. The scope is one EC2 instance and one DataNode with replication factor 1. The execution configuration supplied for this project is `dfs.replication=1` and `mapreduce.framework.name=local`. YARN was not configured. The original command-line Python 3 scripts use only the standard library; the Streamlit frontend adds the dependencies in `requirements.txt`. These environment details describe the reported project setup; the saved TSV files alone do not establish the remote configuration or original submission commands.
+
+Repository: [harsha8876/cloud-log-analyzer](https://github.com/harsha8876/cloud-log-analyzer).
 
 ## Actual file structure
 
 ```text
 cloud-log-analyzer/
 ├── README.md
-├── PROJECT_REPORT.md
+├── PROJECT_REPORT.md          # Pre-existing Markdown report; preserved
 ├── SCREENSHOTS.md
 ├── screenshots/                
 ├── sample.log
@@ -20,6 +22,12 @@ cloud-log-analyzer/
 ├── mapper.py
 ├── reducer.py
 ├── verify_reports.py
+├── app.py
+├── log_pipeline.py
+├── streaming_mapper.py
+├── requirements.txt
+├── tests/                     # Local backend and Streamlit checks
+├── .gitignore
 ├── results/
 │   ├── pages.tsv
 │   ├── ip.tsv
@@ -43,8 +51,8 @@ cloud-log-analyzer/
 | `results/{pages,ip,status}.tsv` | Saved six-record sample reports. |
 | `results/large/{pages,ip,status}.tsv` | Saved 10,000-record reports, verified against `large.log`. |
 | `README.md` | Usage, data flow, commands, actual results, and limitations. |
-| `PROJECT_REPORT.md` | Academic project report; student names remain placeholders. |
-| `SCREENSHOTS.md`, `screenshots/` | Evidence checklist and destination for future captures. No screenshots are supplied yet. |
+| `PROJECT_REPORT.md` | Pre-existing Markdown report; preserved unchanged. |
+| `SCREENSHOTS.md`, `screenshots/` | Existing evidence checklist and supplied dashboard, sample-result, and Hadoop/HDFS captures. The inventory below identifies missing screenshots. |
 | `Macintosh HD`, `.DS_Store` | Existing ancillary items, not analyzer inputs or dependencies; preserved. |
 
 The record format is `IP timestamp page HTTP_status`. Large-data timestamps advance one second per record, from `2026-11-01T10:00:00` through `2026-11-01T12:46:39`. Every `/missing` request has status 404; other pages use 200 with a 5% probability of 500.
@@ -52,11 +60,13 @@ The record format is `IP timestamp page HTTP_status`. Large-data timestamps adva
 ## Data flow
 
 ```text
-synthetic logs → HDFS → Hadoop Streaming mapper → sorting/grouping
-               → reducer → HDFS reports → local TSV exports → Counter verification
+Streamlit upload → record validation and preview → UUID storage on EC2 and HDFS
+                → three Hadoop Streaming jobs (page, IP, status)
+                → HDFS reports → independent Counter verification
+                → charts and full tables → CSV report downloads
 ```
 
-The page mapper produces page/count pairs. IP and status reports require selecting fields 1 and 4 respectively; separate IP/status mapper scripts are not present. The reproduction commands below supply those selections inline. Hadoop Streaming exchanges tab-separated keys and values with the Python processes, as described in the official [Streaming documentation](https://hadoop.apache.org/docs/r3.4.3/hadoop-streaming/HadoopStreaming.html). With `mapreduce.framework.name=local`, MapReduce tasks run locally on the EC2 host, while inputs and outputs use HDFS.
+The page mapper produces page/count pairs. IP and status reports require selecting fields 1 and 4 respectively; separate IP/status mapper scripts are not present. The frontend uses `streaming_mapper.py` to select each field and invoke the existing page mapper. The command-line reproduction commands below supply the IP/status selections inline. Hadoop Streaming exchanges tab-separated keys and values with the Python processes, as described in the official [Streaming documentation](https://hadoop.apache.org/docs/r3.4.3/hadoop-streaming/HadoopStreaming.html). With `mapreduce.framework.name=local`, MapReduce tasks run locally on the EC2 host, while inputs and outputs use HDFS.
 
 ## Local tests and generation
 
@@ -163,6 +173,8 @@ The `cmp` commands check new exports against the preserved, independently verifi
 
 ## Actual results
 
+The application is working on AWS. In the verified **10,000-record test**, every key and count matched the independent Python Counter results in all three reports: page counts, requests per IP, and HTTP status counts. **Each report totaled 10,000 requests**. The dataset contains 50 unique IP addresses, six pages, and three HTTP status codes. The supplied frontend result screenshot shows the separate six-record sample run; a screenshot of the 10,000-record verification is still missing.
+
 The existing reports were read and `python3 verify_reports.py` was run successfully during documentation preparation. All three reports matched independent counts for 10,000 records; every report totals 10,000. Page report: 6 keys. IP report: 50 keys. Status report: 3 keys.
 
 ### Pages — `results/large/pages.tsv`
@@ -243,7 +255,28 @@ The sample reports total six records each: pages `/about=2`, `/home=3`, `/missin
 
 ## Screenshots
 
-The existing captures below show the Hadoop/HDFS environment and the six-record sample run. They do not show the 10,000-record report verification. PNG copies of the two TIFF screenshots are embedded for Markdown compatibility; the original TIFF files are preserved.
+The supplied captures show the Streamlit dashboard, a verified six-record frontend run, and the Hadoop/HDFS environment and sample reports. PNG copies of the two TIFF screenshots are embedded for Markdown compatibility; original images and filenames are preserved.
+
+### Streamlit upload dashboard
+
+![Streamlit dashboard with UTF-8 log upload and Analyze Logs button](screenshots/dashboard.png)
+
+The dashboard offers a UTF-8 `.log` upload with a 10 MB limit; “Analyze Logs” is disabled before a valid upload.
+
+### Verified sample analysis in Streamlit
+
+![Streamlit sample analysis with six validated records, successful verification, request metrics, page results and IP chart](screenshots/result.png)
+
+The sample run shows six valid records, successful verification of all three reports, six requests and six unique IPs. Visible page counts are `/home=3`, `/about=2`, and `/missing=1`, followed by the page CSV button and IP chart.
+
+### Missing screenshot evidence
+
+- EC2 console showing the current `c7i-flex.large` instance type and 4 GiB RAM configuration.
+- The 10,000-record frontend run with independent verification and request/IP metrics.
+- The lower frontend sections showing the full IP table, HTTP status chart/table, and IP/status CSV buttons.
+- Validation rejection and failed-job error states.
+
+The application code provides the lower result sections and error handling; the supplied frontend capture does not show them.
 
 ### AWS EC2 deployment
 
@@ -281,3 +314,121 @@ The sample status report contains `200=5` and `404=1`; the HDFS listing includes
 
 
 
+## Streamlit frontend on EC2
+
+The frontend must run **on the same EC2 instance as Hadoop**, using the existing Hadoop 3.4.3 installation and HDFS configuration. Running `app.py` on the Mac does not run Hadoop remotely. The app submits three real Hadoop Streaming jobs with `mapreduce.framework.name=local` and `mapreduce.job.reduces=1`. Computation runs locally on the EC2 host; this is not YARN execution or distributed MapReduce processing. Inputs and reports reside in HDFS.
+
+Frontend files:
+
+| File | Purpose |
+| --- | --- |
+| `app.py` | Upload, preview, progress, verified charts/tables, CSV downloads, and per-session results. |
+| `log_pipeline.py` | Strict validation, environment/HDFS checks, process lock, isolated Hadoop jobs, and independent Counter comparison. |
+| `streaming_mapper.py` | Selects page, IP, or status into the page position and calls the unchanged `mapper.py`; every job uses the unchanged `reducer.py`. |
+| `requirements.txt` | Streamlit and pandas dependencies; Python 3.10 or later required. |
+| `tests/test_frontend.py`, `tests/test_app.py` | Local validation, comparison, adapter, subprocess, isolation, and failure checks using unittest. Hadoop execution is mocked. |
+| `.gitignore` | Excludes the virtual environment, Python cache, and frontend runtime files. |
+
+Uploads must be UTF-8 `.log` files of at most 10 MiB (10 × 1024 × 1024 bytes). Every nonblank line must contain exactly `IP ISO_timestamp /page HTTP_status`, separated by whitespace. IPv4 and IPv6 are accepted. Timestamps require `YYYY-MM-DDTHH:MM:SS`, with optional fractional seconds and `Z` or `±HH:MM` timezone; dates without a time are rejected. Statuses must be three digits from 100 to 599. Invalid files show original line numbers (first 20 errors plus an additional-error count), and no job starts. Blank lines are ignored.
+
+A valid upload shows its record count and first ten records. “Analyze Logs” checks Java and Hadoop executables from `JAVA_HOME` and `HADOOP_HOME`, the Hadoop version and Streaming JAR, an HDFS default filesystem, safe mode, and live DataNodes before uploading. It does not format HDFS, start services, or change Hadoop configuration.
+
+Each analysis saves the original bytes to `.frontend-runs/<UUID>/upload.log` on EC2 and uploads to `/tmp/cloud-log-analyzer/<UUID>/input/upload.log` in HDFS. Each job gets its own new output directory beneath that UUID. Actual TSV reports are retrieved from HDFS only after successful job return and `_SUCCESS` checks, and saved beside the upload. Every output key/count must match independently computed Python Counters, and each report must total the uploaded record count. Only then are results published to the session. Total requests, unique IPs, page/status charts and full tables, the top ten IP chart, the full IP table, and all three CSV downloads use these verified Hadoop results.
+
+Results persist through reruns and downloads. Changing or removing the uploaded content clears results and errors. Starting a new attempt clears prior results immediately, and any failed job or mismatch prevents success and result display. A nonblocking filesystem lock permits one frontend Hadoop run at a time across sessions/processes using this project directory. Use one deployed project directory on this small instance; separate copies or manually submitted jobs do not share the lock. Commands use argument lists with `shell=False`, checked exit codes, and 120-second utility/600-second job timeouts. A timed-out process group is terminated before the lock is released. Mapper/reducer commands explicitly invoke `python3`; uploaded names and contents never become commands or command arguments.
+
+Runtime uploads and reports, including partial failed runs, are retained for diagnosis. Monitor EC2 and HDFS disk usage and remove only identified frontend UUID runs manually after they are no longer needed. The app never deletes existing datasets, reports, screenshots, or HDFS output directories.
+
+### 1. Copy the frontend from the Mac
+
+Use the instance's **current** public IP, which can change after an instance stop/start. These commands copy the new files and the two existing scripts required at runtime, without deleting other remote files. Run from the Mac:
+
+```sh
+cd ~/cloud-log-analyzer
+ssh -i ~/Downloads/cloud-log-key.pem ubuntu@YOUR_CURRENT_EC2_PUBLIC_IP \
+  'mkdir -p ~/cloud-log-analyzer/tests'
+scp -i ~/Downloads/cloud-log-key.pem \
+  app.py log_pipeline.py streaming_mapper.py mapper.py reducer.py requirements.txt README.md .gitignore \
+  ubuntu@YOUR_CURRENT_EC2_PUBLIC_IP:~/cloud-log-analyzer/
+scp -i ~/Downloads/cloud-log-key.pem tests/test_frontend.py tests/test_app.py \
+  ubuntu@YOUR_CURRENT_EC2_PUBLIC_IP:~/cloud-log-analyzer/tests/
+```
+
+`sample.log` and `large.log` should already exist in the EC2 project for the tests below. If absent, copy them from the Mac using `scp` to that directory; preserve any existing EC2 datasets. Do not copy the Mac virtual environment.
+
+### 2. Set up the environment on EC2
+
+```sh
+ssh -i ~/Downloads/cloud-log-key.pem ubuntu@YOUR_CURRENT_EC2_PUBLIC_IP
+cd ~/cloud-log-analyzer
+python3 --version
+python3 -m venv .venv
+. .venv/bin/activate
+python3 -m pip install -r requirements.txt
+```
+
+If Ubuntu reports that venv/ensurepip is unavailable, install `python3-venv` using the instance's package manager, then repeat venv creation. Use Python 3.10 or later. Set the following to the instance's **existing installation paths**; these are examples, not automatic configuration changes:
+
+```sh
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+export HADOOP_HOME="$HOME/hadoop-3.4.3"
+export PATH="$JAVA_HOME/bin:$HADOOP_HOME/bin:$PATH"
+"$JAVA_HOME/bin/java" -version
+"$HADOOP_HOME/bin/hadoop" version
+"$HADOOP_HOME/bin/hdfs" getconf -confKey fs.defaultFS
+"$HADOOP_HOME/bin/hdfs" dfsadmin -safemode get
+"$HADOOP_HOME/bin/hdfs" dfsadmin -report
+```
+
+Adjust the example paths to the installed locations. Preserve `HADOOP_CONF_DIR` if the cluster uses a custom configuration directory. Require Hadoop 3.4.3, `hdfs://...`, safe mode OFF, and at least one live DataNode. The EC2 user must be able to create a UUID directory under HDFS `/tmp/cloud-log-analyzer` and write the project runtime directory. If a check fails, inspect the existing cluster's services, configuration, permissions, and disk space; do not format the NameNode.
+
+### 3. Start Streamlit on EC2 and tunnel from the Mac
+
+In the EC2 terminal, with the venv and environment variables above active:
+
+```sh
+cd ~/cloud-log-analyzer
+python3 -m streamlit run app.py \
+  --server.address=127.0.0.1 \
+  --server.port=8501 \
+  --server.maxUploadSize=10
+```
+
+Keep this EC2 terminal running. Open a separate terminal **on the Mac**:
+
+```sh
+ssh -i ~/Downloads/cloud-log-key.pem \
+  -L 8501:127.0.0.1:8501 ubuntu@YOUR_CURRENT_EC2_PUBLIC_IP
+```
+
+Keep the tunnel open and open **http://localhost:8501** on the Mac. Streamlit binds only to EC2 loopback; **no additional EC2 inbound ports are required**. Use the existing SSH access on port 22. Do not expose port 8501 through the security group.
+
+### 4. Verify locally, then perform real EC2 acceptance checks
+
+From the project root on the Mac or EC2:
+
+```sh
+python3 -m py_compile app.py log_pipeline.py streaming_mapper.py tests/test_frontend.py tests/test_app.py
+python3 -m unittest discover -s tests -v
+```
+
+These local checks cover valid/empty/malformed/oversized/non-UTF-8 uploads, line numbers, all three independent comparisons (including incorrect counts with an unchanged total), the existing mapper adapter, subprocess success/failure/timeouts, preflight failures, UUID isolation, and lock rejection. With requirements installed, Streamlit AppTest also checks result persistence, failure clearing, upload changes/removal, tables, and download controls using a mocked backend; otherwise that UI test is skipped. Hadoop subprocesses and the environment are mocked in pipeline tests; they do **not** establish Hadoop or EC2 integration. The original report verifier remains unchanged and still checks only the preserved `results/large/` reports.
+
+The application is now working on AWS, including the verified 10,000-record test described above. Use this checklist for repeat acceptance testing; the supplied screenshots do not establish every error-handling or concurrency check:
+
+1. Through the tunnel, upload `sample.log`, inspect the six-record preview, and click “Analyze Logs”. Require all three jobs and comparison to succeed. Expect six requests, six unique IPs, `/home=3`, `/about=2`, `/missing=1`, `200=5`, and `404=1`. Check every table and all three CSV downloads.
+2. Upload `large.log` and run again. Require 10,000 requests and 50 unique IPs, with page/status counts matching the existing tables above. Note the new run ID and inspect its actual HDFS outputs if needed.
+3. Confirm results persist across downloads/reruns. Replace the upload with an empty or malformed `.log`; old results must disappear and validation must block submission.
+4. While one session is running, try another browser session. The second analysis must report that another run is active. To test failure handling without disrupting HDFS, start a separate test app process with an invalid `HADOOP_HOME`; it must show an actionable error and no results.
+5. Record repeat-test outcomes and capture the missing screenshots listed above. Preserve the pre-existing project report.
+
+Local implementation verification passed syntax checks and all 20 tests, including Streamlit AppTest, using Python 3.14.3, Streamlit 1.66.1, and pandas 2.3.3. Hadoop calls in those local tests were mocked. Those checks are distinct from the working AWS application and verified 10,000-record test reported here. No new remote integration test was run during this documentation update. Existing project evidence is preserved.
+
+## Scope and references
+
+This implementation uses one EC2 instance, one HDFS DataNode, replication factor 1, local MapReduce execution, and no YARN. It demonstrates validated log aggregation and independent result verification. No performance benchmark, multi-node scalability result, or fault-tolerance demonstration is claimed.
+
+- Course lecture slides covering Hadoop, HDFS, and MapReduce (course material).
+- Apache Hadoop 3.4.3 [Hadoop Streaming documentation](https://hadoop.apache.org/docs/r3.4.3/hadoop-streaming/HadoopStreaming.html).
+- Apache Hadoop 3.4.3 [Single Node Setup](https://hadoop.apache.org/docs/r3.4.3/hadoop-project-dist/hadoop-common/SingleCluster.html).
+- [Project repository](https://github.com/harsha8876/cloud-log-analyzer).
